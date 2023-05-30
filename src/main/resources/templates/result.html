@@ -1,0 +1,77 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+  <meta charset="UTF-8">
+  <title layout:title-pattern="$CONTENT_TITLE"></title>
+  <div id="templateName" th:attr="data-id=${templateName}" hidden></div>
+  <link
+          th:href="@{{cdnUrl}/stylesheets/chs-styles.css(cdnUrl=${@environment.getProperty('cdn.url')})}"
+          media="all" rel="stylesheet" type="text/css" />
+  <link
+          th:href="@{{cdnUrl}/stylesheets/govuk-link_override.css(cdnUrl=${@environment.getProperty('cdn.url')})}"
+          media="all" rel="stylesheet" type="text/css" />
+  <link
+          th:href="@{{cdnUrl}/stylesheets/govuk-frontend/v3.11.0/govuk-frontend-3.11.0.min.css(cdnUrl=${@environment.getProperty('cdn.url')})}"
+          media="all" rel="stylesheet" type="text/css" />
+  <link
+          rel="icon"
+          th:href="@{{cdnUrl}/images/favicon.ico?0.17.3(cdnUrl=${@environment.getProperty('cdn.url')})}"
+          type="image/x-icon" />
+
+  <style>
+    pre {
+      background: #f9f9f8;
+      padding: 15px;
+      overflow: auto;
+      position: relative;
+      border: 1px solid #bfc1c3;
+    }
+  </style>
+</head>
+<body>
+<script th:src="@{{cdnUrl}/javascripts/app/body-js-enable.js(cdnUrl=${@environment.getProperty('cdn.url')})}" type="text/javascript"></script>
+<script th:src="@{{cdnUrl}/javascripts/vendor/require.js(cdnUrl=${@environment.getProperty('cdn.url')})}" type="text/javascript"></script>
+<script th:src="@{{cdnUrl}/javascripts/vendor/jquery-3.3.1.min.js(cdnUrl=${@environment.getProperty('cdn.url')})}" type="text/javascript"></script>
+
+<a href="#content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
+
+<div class="entire-wrapper">
+  <div th:replace="fragments/header :: header (headerText = 'One Login Integration POC')"></div>
+  <div class="govuk-width-container">
+    <!--        <div th:replace="fragments/backButtonLink :: backButtonLink"></div>-->
+    <main id="content" role="main" class="govuk-main-wrapper">
+      <div class="form-group">
+        <h1 class="govuk-heading-l">Results from /authorize request</h1>
+        <h2 class="govuk-heading-l">Access Token</h2>
+        <pre th:text="${access_token}"></pre>
+
+        <h2 class="govuk-heading-l">ID Token</h2>
+        <pre th:text="${id_token}"></pre>
+
+        <h2 class="govuk-heading-l">User Info</h2>
+        <pre th:text="${user_info}"></pre>
+
+        <h2 class="govuk-heading-l">Core Identity Claim</h2>
+        <pre th:text="${user_info}"></pre>
+        <a href="/oauth/iv" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
+          Refresh Token
+        </a>
+
+        <h2 class="govuk-heading-l">Existing CHS User?</h2>
+        <pre th:if="${email_found}">Existing account found in mongoDB account.users for email address. ID: <b th:text="${user_id}"></b></pre>
+        <pre th:if="${email_not_found}">NO Existing account found in mongoDB account.users for email address</pre>
+      </div>
+    </main>
+  </div>
+</div>
+<!--//<div th:replace="fragments/footer :: footer"></div>-->
+
+<!--<script th:src="d3uvya5a8a1ncx.cloudfront.net/javascripts/app/js-enable.js(cdnUrl=${@environment.getProperty('cdn.url')})}" type="text/javascript"></script>-->
+<script th:src="@{{cdnUrl}/javascripts/vendor/selection-buttons.js(cdnUrl=${@environment.getProperty('cdn.url')})}" type="text/javascript"></script>
+
+</body>
+</html>
