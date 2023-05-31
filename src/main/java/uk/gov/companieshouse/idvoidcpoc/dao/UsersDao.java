@@ -23,6 +23,9 @@ public class UsersDao {
     @Field("created")
     private LocalDate created;
 
+    @Field("one_login")
+    private boolean oneLogin;
+
     public String getId() {
         return id;
     }
@@ -61,5 +64,13 @@ public class UsersDao {
 
     public void setCreated(LocalDate created) {
         this.created = created;
+    }
+
+    public boolean isOneLogin() {
+        return oneLogin;
+    }
+
+    public void setOneLogin(boolean oneLogin) {
+        this.oneLogin = oneLogin;
     }
 }

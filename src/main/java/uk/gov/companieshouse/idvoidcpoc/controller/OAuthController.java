@@ -7,9 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
 import javax.servlet.http.Cookie;
@@ -70,10 +68,6 @@ public class OAuthController {
         // Store cookie in session with state value
         response.addCookie(new Cookie("state", state.toString()));
 
-//        Cookie c = oauth2GenerateProviderCookie(response);
-//        response.addCookie(new Cookie("__FLP", "HELLO"));
-
-        System.out.println("AFTER COOKIE");
         // Use authorization request to redirect user to One Login
         return new RedirectView(authorizationRequest.toURI().toString().concat("&nonce=12345"));
     }
@@ -115,8 +109,10 @@ public class OAuthController {
         if (user.size() == 1) {
             model.addAttribute("email_found", true);
             model.addAttribute("user_id", user.get(0).getId());
+            storeOneLoginUserFlag(user.get(0)); // add one_login flag to existing user
         } else {
             model.addAttribute("email_not_found", true);
+            // TODO create new user in `users` collection
         }
 
         // Add details to model to display on results page
@@ -137,14 +133,7 @@ public class OAuthController {
         generateAndStoreAuthorisationCode();
         Cookie c = oauth2GenerateProviderCookie(response);
         response.addCookie(c);
-        Cookie[] cookies = request.getCookies();
-        for (Cookie cookie : cookies) {
-            System.out.println(cookie.toString());
-            System.out.println(cookie.getDomain());
-        }
 
-
-        System.out.println(request.getCookies());
         return "result";
     }
 
@@ -178,6 +167,11 @@ public class OAuthController {
 
         // Store record in DB
         oauthRepository.insert(oad);
+    }
+
+    public void storeOneLoginUserFlag(UsersDao user) {
+        user.setOneLogin(true);
+        usersRepository.save(user);
     }
 
     public Cookie oauth2GenerateProviderCookie(HttpServletResponse response){
