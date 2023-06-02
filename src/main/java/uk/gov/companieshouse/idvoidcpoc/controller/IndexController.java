@@ -15,7 +15,7 @@ public class IndexController {
     protected static final String ERROR_VIEW = "error";
 
 
-    @GetMapping("/")
+    @GetMapping("/poc")
     public String index(Model model,
                                     HttpServletRequest request) {
         return INDEX_VIEW;
