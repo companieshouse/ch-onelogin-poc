@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 
@@ -27,8 +28,8 @@ import uk.gov.companieshouse.idvoidcpoc.repository.OauthRepository;
 import uk.gov.companieshouse.idvoidcpoc.repository.UsersRepository;
 import uk.gov.companieshouse.idvoidcpoc.utils.Oidc;
 
-
 @Controller
+@RequestMapping("/poc")
 public class OAuthController {
 
     @Autowired
@@ -36,26 +37,27 @@ public class OAuthController {
 
     private final UsersRepository usersRepository;
     private final OauthRepository oauthRepository;
+
     @Autowired
     public OAuthController(UsersRepository usersRepository, OauthRepository oauthRepository) {
         this.usersRepository = usersRepository;
         this.oauthRepository = oauthRepository;
     }
-    @Value( "${client_id}" )
+
+    @Value("${client_id}")
     private String clientID;
 
-    @Value( "${base.url}" )
+    @Value("${base.url}")
     private String baseURI;
 
-    @Value( "${journey.level}" )
+    @Value("${journey.level}")
     private String journeyLevel;
     private static final Logger LOG = LoggerFactory.getLogger(Oidc.class);
 
-
-
     @GetMapping("/oauth/login")
-    public RedirectView loginBasic(@RequestParam(name = "redirect_url", required = false)String redirectURL, Model model,
-                              HttpServletRequest request, HttpServletResponse response) throws URISyntaxException {
+    public RedirectView loginBasic(@RequestParam(name = "redirect_url", required = false) String redirectURL,
+            Model model,
+            HttpServletRequest request, HttpServletResponse response) throws URISyntaxException {
         LOG.info("Authorizing with One Login");
         cleanCookies(response);
         if (redirectURL != null) {
@@ -70,10 +72,9 @@ public class OAuthController {
         // Store cookie in session with state value
         response.addCookie(new Cookie("state", state.toString()));
 
-//        Cookie c = oauth2GenerateProviderCookie(response);
-//        response.addCookie(new Cookie("__FLP", "HELLO"));
+        Cookie c = oauth2GenerateProviderCookie(response);
+        // response.addCookie(new Cookie("__FLP", "HELLO"));
 
-        System.out.println("AFTER COOKIE");
         // Use authorization request to redirect user to One Login
         return new RedirectView(authorizationRequest.toURI().toString().concat("&nonce=12345"));
     }
@@ -86,11 +87,12 @@ public class OAuthController {
 
     @GetMapping("/oauth/callback")
     public String callback(@CookieValue(value = "state") String cookieState,
-                           @CookieValue(value = "redirect_url", required = false) String redirectURL,
-                           @RequestParam(name = "state")String callbackState,
-                           @RequestParam(name = "code")String code,
-                           Model model,
-                           HttpServletRequest request, HttpServletResponse response) throws IOException, ParseException, URISyntaxException {
+            @CookieValue(value = "redirect_url", required = false) String redirectURL,
+            @RequestParam(name = "state") String callbackState,
+            @RequestParam(name = "code") String code,
+            Model model,
+            HttpServletRequest request, HttpServletResponse response)
+            throws IOException, ParseException, URISyntaxException {
         LOG.info("Callback function after authorizing with One Login");
 
         // Check state
@@ -143,14 +145,13 @@ public class OAuthController {
             System.out.println(cookie.getDomain());
         }
 
-
         System.out.println(request.getCookies());
         return "result";
     }
 
     @GetMapping("/oauth/iv")
     public RedirectView loginIV(Model model,
-                              HttpServletRequest request, HttpServletResponse response) throws URISyntaxException {
+            HttpServletRequest request, HttpServletResponse response) throws URISyntaxException {
         LOG.info("Authorizing with Identity Verification");
 
         // Generate random state string for pairing the response to the request
@@ -159,6 +160,7 @@ public class OAuthController {
         // Use this URI to send the end-user's browser to the server
         return new RedirectView(authorizationRequest.toURI().toString());
     }
+
     public void generateAndStoreAuthorisationCode() {
         // Generate Code
         Random rd = new Random();
@@ -174,13 +176,13 @@ public class OAuthController {
         oad.setClientID("test_client_id");
         oad.setCodeValidUntil(409281574);
 
-        //TODO: Add user_details to Oauth2AuthorisationsDao
+        // TODO: Add user_details to Oauth2AuthorisationsDao
 
         // Store record in DB
         oauthRepository.insert(oad);
     }
 
-    public Cookie oauth2GenerateProviderCookie(HttpServletResponse response){
+    public Cookie oauth2GenerateProviderCookie(HttpServletResponse response) {
         LOG.info("Creating FLP cookie");
 
         String cookieContentEncoded = "eyJhbGciOiJkaXIiLCJ0eXAiOiJKV0UiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..m-qUaMN3dQKZACaEu6hziA.eLfNw9TmVtlMqpneiedsNUbvdaXTkfxv_bQCCMak9DY.bkdAZKEl8dBKCR0va-s4Fg";
