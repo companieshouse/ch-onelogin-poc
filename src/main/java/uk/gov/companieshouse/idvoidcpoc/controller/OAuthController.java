@@ -117,8 +117,10 @@ public class OAuthController {
         if (user.size() == 1) {
             model.addAttribute("email_found", true);
             model.addAttribute("user_id", user.get(0).getId());
+            storeOneLoginUserFlag(user.get(0)); // add one_login flag to existing user
         } else {
             model.addAttribute("email_not_found", true);
+            // TODO create new user in `users` collection
         }
 
         // Add details to model to display on results page
@@ -139,13 +141,7 @@ public class OAuthController {
         generateAndStoreAuthorisationCode();
         Cookie c = oauth2GenerateProviderCookie(response);
         response.addCookie(c);
-        Cookie[] cookies = request.getCookies();
-        for (Cookie cookie : cookies) {
-            System.out.println(cookie.toString());
-            System.out.println(cookie.getDomain());
-        }
 
-        System.out.println(request.getCookies());
         return "result";
     }
 
@@ -182,7 +178,12 @@ public class OAuthController {
         oauthRepository.insert(oad);
     }
 
-    public Cookie oauth2GenerateProviderCookie(HttpServletResponse response) {
+    public void storeOneLoginUserFlag(UsersDao user) {
+        user.setOneLogin(true);
+        usersRepository.save(user);
+    }
+
+    public Cookie oauth2GenerateProviderCookie(HttpServletResponse response){
         LOG.info("Creating FLP cookie");
 
         String cookieContentEncoded = "eyJhbGciOiJkaXIiLCJ0eXAiOiJKV0UiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..m-qUaMN3dQKZACaEu6hziA.eLfNw9TmVtlMqpneiedsNUbvdaXTkfxv_bQCCMak9DY.bkdAZKEl8dBKCR0va-s4Fg";
