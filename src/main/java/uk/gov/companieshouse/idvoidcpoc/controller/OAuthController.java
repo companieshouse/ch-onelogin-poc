@@ -128,6 +128,16 @@ public class OAuthController {
         model.addAttribute("id_token", payload);
         model.addAttribute("user_info", userInfo.getEmailAddress());
 
+        generateAndStoreAuthorisationCode();
+
+        // __FLP cookie
+        Cookie flpCookie = oauth2GenerateProviderCookie(response);
+        response.addCookie(flpCookie);
+
+        // __ZXS cookie
+        Cookie zxsCookie = generateZXSCookie(response);
+        response.addCookie(zxsCookie);
+
         if (journeyLevel.equals("result")) {
             LOG.info("journey level is result, so show results page");
             return "result";
@@ -137,10 +147,6 @@ public class OAuthController {
         if (redirectURL != null) {
             return "redirect:http://" + redirectURL;
         }
-
-        generateAndStoreAuthorisationCode();
-        Cookie c = oauth2GenerateProviderCookie(response);
-        response.addCookie(c);
 
         return "result";
     }
@@ -188,6 +194,15 @@ public class OAuthController {
 
         String cookieContentEncoded = "eyJhbGciOiJkaXIiLCJ0eXAiOiJKV0UiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..m-qUaMN3dQKZACaEu6hziA.eLfNw9TmVtlMqpneiedsNUbvdaXTkfxv_bQCCMak9DY.bkdAZKEl8dBKCR0va-s4Fg";
         Cookie c = new Cookie("__FLP", cookieContentEncoded);
+        c.setDomain("account.chs.local");
+        return c;
+    }
+
+    public Cookie generateZXSCookie(HttpServletResponse response) {
+        LOG.info("Creating ZXS cookie");
+
+        String cookieContentEncoded = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwidHlwIjoiSldFIn0..alveCuvMTh3ENgPNAiP-Pg.2KIA0DwP5vXR6GrkMLX3QbQDBpPe6O4ugmCgd__mJZSoSVPBcMzm8MreocMHI0pAAc5LDS9dO4VGdTlHrNPbj-6qt2z-SNsH2hCkcgQ_DXg.D40_QZO4cgfjba7GJ4W3Qg";
+        Cookie c = new Cookie( "__ZXS", cookieContentEncoded);
         c.setDomain("account.chs.local");
         return c;
     }
