@@ -27,6 +27,8 @@ import uk.gov.companieshouse.idvoidcpoc.dao.UsersDao;
 import uk.gov.companieshouse.idvoidcpoc.repository.OauthRepository;
 import uk.gov.companieshouse.idvoidcpoc.repository.UsersRepository;
 import uk.gov.companieshouse.idvoidcpoc.utils.Oidc;
+import uk.gov.companieshouse.session.Session;
+import uk.gov.companieshouse.session.SessionImpl;
 
 @Controller
 @RequestMapping("/poc")
@@ -148,6 +150,14 @@ public class OAuthController {
             return "redirect:http://" + redirectURL;
         }
 
+        Session newSession = new SessionImpl();
+        
+        Map<String, Object> mySessionData = newSession.getData();
+
+        mySessionData.put("foo", "bar");
+
+        newSession.store();
+
         return "result";
     }
 
@@ -195,6 +205,7 @@ public class OAuthController {
         String cookieContentEncoded = "eyJhbGciOiJkaXIiLCJ0eXAiOiJKV0UiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..m-qUaMN3dQKZACaEu6hziA.eLfNw9TmVtlMqpneiedsNUbvdaXTkfxv_bQCCMak9DY.bkdAZKEl8dBKCR0va-s4Fg";
         Cookie c = new Cookie("__FLP", cookieContentEncoded);
         c.setDomain("account.chs.local");
+        c.setPath("/");
         return c;
     }
 
@@ -204,6 +215,7 @@ public class OAuthController {
         String cookieContentEncoded = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwidHlwIjoiSldFIn0..alveCuvMTh3ENgPNAiP-Pg.2KIA0DwP5vXR6GrkMLX3QbQDBpPe6O4ugmCgd__mJZSoSVPBcMzm8MreocMHI0pAAc5LDS9dO4VGdTlHrNPbj-6qt2z-SNsH2hCkcgQ_DXg.D40_QZO4cgfjba7GJ4W3Qg";
         Cookie c = new Cookie( "__ZXS", cookieContentEncoded);
         c.setDomain("account.chs.local");
+        c.setPath("/oauth2/user");
         return c;
     }
 }
