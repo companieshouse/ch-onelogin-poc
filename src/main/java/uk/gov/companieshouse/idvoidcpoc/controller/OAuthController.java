@@ -206,9 +206,16 @@ public class OAuthController {
             HttpServletRequest request, HttpServletResponse response) throws URISyntaxException {
         LOG.info("Authorizing with Identity Verification");
 
+        cleanCookies(response);
+        
         // Generate random state string for pairing the response to the request
         AuthorizationRequest authorizationRequest = oidcClient.buildIVAuthorizeRequest();
 
+        // Get the state from the request
+        State state = authorizationRequest.getState();
+
+        // Store cookie in session with state value
+        response.addCookie(new Cookie("state", state.toString()));
         // Use this URI to send the end-user's browser to the server
         return new RedirectView(authorizationRequest.toURI().toString());
     }
