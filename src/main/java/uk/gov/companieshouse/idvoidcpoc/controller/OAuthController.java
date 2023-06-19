@@ -75,7 +75,6 @@ public class OAuthController {
         response.addCookie(new Cookie("state", state.toString()));
 
         Cookie c = oauth2GenerateProviderCookie(response);
-        // response.addCookie(new Cookie("__FLP", "HELLO"));
 
         // Use authorization request to redirect user to One Login
         return new RedirectView(authorizationRequest.toURI().toString().concat("&nonce=12345"));
@@ -140,25 +139,66 @@ public class OAuthController {
         Cookie zxsCookie = generateZXSCookie(response);
         response.addCookie(zxsCookie);
 
+        // __SID cookie
+        Cookie sidCookie = generateSIDCookie();
+        response.addCookie(sidCookie);
+
+        // Store session in redis
+        Session newSession = new SessionImpl();
+        Map<String, Object> mySessionData = newSession.getData();
+        mySessionData.put("foo", "bar");
+        mySessionData.put("expires", 1999999999);
+
+        Map<String, Object> accessToken = new HashMap<>(){
+            {
+                put("access_token", "CDE9yYsRJ3M4CUX_hce3jernoWBLP7WFRIS9QNtzxL9fsKhnjW25mUuD8O9SYixZ5R99J78mrDt0Uzk4MudHEQ");
+                put("expires_in", 3600);
+                put("refresh_token", "_YI2Gawkvkb4qG7byKWysY5bGwQP3N98vpG5FWCuFkALWjHo9-z88VQiZvkFclRt4XS0rPNbvt0pGOVyUYj4Sw");
+                put("token_type", "Bearer");
+            }
+        };
+
+        Map<String, Object> userProfile = new HashMap<>(){
+            {
+                put("locale", "GB_en");
+                put("permissions", new HashMap<>());
+                put("scope", "https://identity.company-information.service.gov.uk/user.write-full");
+                put("email", "demo@ch.gov.uk");
+                put("forename", null);
+                put("surname", null);
+                put("id", "Y2VkZWVlMzhlZWFjY2M4MzQ3MT");
+            }
+        };
+
+        Map<String, Object> signinInfo = new HashMap<>(){
+            {
+                put("access_token", accessToken);
+                put("admin_permissions", "0");
+                put("signed_in", 1);
+                put("user_profile", userProfile);
+                put(".hijacked", null);
+                put(".zxs_key", "d0414a9c8383605f7eb7d77e608565b1072132b28415e69defdf9feff417c69a");
+            }
+        };
+        mySessionData.put("signin_info", signinInfo);
+
+        newSession.setCookieId("G58PIgF5746nNA+YoLfCA3XLMIENWRkb6BPSvmw1JxEztUKx2zlDgUc");
+        newSession.store();
+
         if (journeyLevel.equals("result")) {
             LOG.info("journey level is result, so show results page");
             return "result";
         }
 
         LOG.info("journey level is not result, so continue with federated login");
-        if (redirectURL != null) {
-            return "redirect:http://" + redirectURL;
-        }
-
-        Session newSession = new SessionImpl();
-        
-        Map<String, Object> mySessionData = newSession.getData();
-
-        mySessionData.put("foo", "bar");
-
-        newSession.store();
-
-        return "result";
+        // if (redirectURL != null) {
+        LOG.info("redirecting");
+        String code2 = "rUMT3qffpPo-Lczc-jfKFFhZLbDd7QTA_Mk6ylieDCs";
+        String state = "eyJhbGciOiJkaXIiLCJ0eXAiOiJKV0UiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..YTjMcZybySS-fTXgoyHgmw.1-L_lbSUx9K2oR28OdkQRY9kp2pXefAITZTNvq1IHP4Xhs06MwU8AZQEmms2XXFeUyoIC_8lBHsCQOfYZ0Qd_Q.za6qUbLHVgwHz5DiUtT7rg";
+        // return "redirect:http://chs.local/oauth2/user/callback?state=" + state + "&code=" + code2;
+        return "redirect:http://chs.local";
+        // return "redirect:http://" + redirectURL;
+        // }
     }
 
     @GetMapping("/oauth/iv")
@@ -216,6 +256,15 @@ public class OAuthController {
         Cookie c = new Cookie( "__ZXS", cookieContentEncoded);
         c.setDomain("account.chs.local");
         c.setPath("/oauth2/user");
+        return c;
+    }
+
+    public Cookie generateSIDCookie() {
+        LOG.info("Creating SID cookie");
+        String cookieContentEncoded = "G58PIgF5746nNA+YoLfCA3XLMIENWRkb6BPSvmw1JxEztUKx2zlDgUc";
+        Cookie c = new Cookie( "__SID", cookieContentEncoded);
+        c.setDomain("chs.local");
+        c.setPath("/");
         return c;
     }
 }
