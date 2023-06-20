@@ -21,6 +21,8 @@ import com.nimbusds.oauth2.sdk.token.AccessToken;
 import com.nimbusds.oauth2.sdk.token.BearerAccessToken;
 import com.nimbusds.oauth2.sdk.token.Tokens;
 import com.nimbusds.openid.connect.sdk.*;
+import com.nimbusds.openid.connect.sdk.claims.ClaimRequirement;
+import com.nimbusds.openid.connect.sdk.claims.ClaimsSetRequest;
 import com.nimbusds.openid.connect.sdk.claims.UserInfo;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
@@ -110,6 +112,11 @@ public class Oidc {
             throw new RuntimeException("Unable to parse prompt", e);
         }
 
+        var claimsSetRequest = new ClaimsSetRequest();
+        var identityEntry = new ClaimsSetRequest.Entry("https://vocab.account.gov.uk/v1/coreIdentityJWT")
+                .withClaimRequirement(ClaimRequirement.ESSENTIAL);
+
+        claimsSetRequest = claimsSetRequest.add(identityEntry);
         // Create "vtr" array to request medium authentication (Cl.Cm) and a medium level of identity confidence (P2).
         JSONArray jsonArray = new JSONArray();
         jsonArray.add("P2.Cl.Cm");
@@ -125,6 +132,9 @@ public class Oidc {
                         .prompt(authRequestPrompt)
                         .endpointURI(new URI(this.idpUrl))
                         .customParameter("vtr", jsonArray.toJSONString());
+
+        authorizationRequestBuilder.claims(
+                new OIDCClaimsRequest().withUserInfoClaimsRequest(claimsSetRequest));
 
         return authorizationRequestBuilder.build();
     }

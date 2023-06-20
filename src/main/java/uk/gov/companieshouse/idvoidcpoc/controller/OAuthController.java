@@ -129,6 +129,15 @@ public class OAuthController {
         model.addAttribute("id_token", payload);
         model.addAttribute("user_info", userInfo.getEmailAddress());
 
+        model.addAttribute("phone_number", userInfo.getPhoneNumber());
+//        SignedJWT jwt = (SignedJWT) userInfo.getClaim("https://vocab.account.gov.uk/v1/coreIdentityJWT");
+//        System.out.println(jwt);
+        var coreIdentityJWT =
+                userInfo.getStringClaim("https://vocab.account.gov.uk/v1/coreIdentityJWT");
+        boolean coreIdentityClaimPresent = Objects.nonNull(coreIdentityJWT);
+        model.addAttribute("core_identity_claim_present", coreIdentityClaimPresent);
+        model.addAttribute("core_identity_claim", coreIdentityJWT);
+
         generateAndStoreAuthorisationCode();
 
         // __FLP cookie
