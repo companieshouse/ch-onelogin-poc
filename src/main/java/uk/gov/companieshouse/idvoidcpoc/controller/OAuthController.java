@@ -1,6 +1,9 @@
 package uk.gov.companieshouse.idvoidcpoc.controller;
 
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,10 +133,46 @@ public class OAuthController {
         model.addAttribute("user_info", userInfo.getEmailAddress());
 
         model.addAttribute("phone_number", userInfo.getPhoneNumber());
-//        SignedJWT jwt = (SignedJWT) userInfo.getClaim("https://vocab.account.gov.uk/v1/coreIdentityJWT");
-//        System.out.println(jwt);
+
         var coreIdentityJWT =
                 userInfo.getStringClaim("https://vocab.account.gov.uk/v1/coreIdentityJWT");
+
+        if (coreIdentityJWT != null) {
+            String sub;
+            try {
+                sub = tokens.getIDToken().getJWTClaimsSet().getClaim("sub").toString();
+            } catch (java.text.ParseException e) {
+                LOG.info("error getting sub claim");
+                throw new RuntimeException(e);
+            }
+
+            try {
+                oidcClient.validateUserIdentityCredential(coreIdentityJWT, sub);
+            } catch (Exception e) {
+                LOG.info("User Identity Credentials Invalid");
+                throw new RuntimeException();
+            }
+
+            try {
+                JSONObject userDetails = oidcClient.getJSONPayloadFromJWT(coreIdentityJWT).getJSONObject("vc").getJSONObject("credentialSubject");
+
+                JSONArray nameObjects = userDetails.getJSONArray("name").getJSONObject(0).getJSONArray("nameParts");
+                var names = new ArrayList();
+                for (int i = 0; i < nameObjects.length(); i++) {
+
+                    names.add(nameObjects.getJSONObject(i).get("value"));
+                }
+                String fullName = String.join(" ", names);
+
+                model.addAttribute("full_name", fullName);
+
+                model.addAttribute("date_of_birth", userDetails.getJSONArray("birthDate").getJSONObject(0).get("value"));
+
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         boolean coreIdentityClaimPresent = Objects.nonNull(coreIdentityJWT);
         model.addAttribute("core_identity_claim_present", coreIdentityClaimPresent);
         model.addAttribute("core_identity_claim", coreIdentityJWT);

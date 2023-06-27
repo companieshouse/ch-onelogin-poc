@@ -49,18 +49,31 @@
         <h2 class="govuk-heading-l">Access Token</h2>
         <pre th:text="${access_token}"></pre>
 
+        <p></p>
         <h2 class="govuk-heading-l">ID Token</h2>
         <pre th:text="${id_token}"></pre>
 
+        <p></p>
         <h2 class="govuk-heading-l">User Info</h2>
         <pre th:text="${user_info}"></pre>
 
-        <h2 class="govuk-heading-l">Core Identity Claim</h2>
-        <pre th:text="${user_info}"></pre>
+        <div th:if="${core_identity_claim_present}">
+          <p></p>
+          <h2 class="govuk-heading-l">Core Identity Claim</h2>
+          <pre th:text="${core_identity_claim}"></pre>
+
+          <p></p>
+          <h2 class="govuk-heading-l">User Details From Claim</h2>
+          <p>Full Name: <i th:text="${full_name}"></i></p>
+          <p>Date of Birth: <i th:text="${date_of_birth}"></i></p>
+        </div>
+
+        <p></p>
         <a href="/oauth/iv" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
           Refresh Token
         </a>
 
+        <p></p>
         <h2 class="govuk-heading-l">Existing CHS User?</h2>
         <pre th:if="${email_found}">Existing account found in mongoDB account.users for email address. ID: <b th:text="${user_id}"></b></pre>
         <pre th:if="${email_not_found}">NO Existing account found in mongoDB account.users for email address</pre>

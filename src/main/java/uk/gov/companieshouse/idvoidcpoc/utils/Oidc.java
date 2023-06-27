@@ -28,6 +28,8 @@ import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import net.minidev.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,11 +45,10 @@ import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Service
@@ -255,6 +256,111 @@ public class Oidc {
         } catch (BadJOSEException | JOSEException e) {
             LOG.error("Unexpected exception thrown when validating ID token", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    public String[] decodeJWT(String jwt) {
+        String[] chunks = jwt.split("\\.");
+
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        String header = new String(decoder.decode(chunks[0]));
+        String payload = new String(decoder.decode(chunks[1]));
+        String signature = new String(decoder.decode(chunks[2]));
+        return new String[]{header, payload, signature};
+    }
+
+    public JSONObject getJSONPayloadFromJWT(String jwt) {
+        String[] decodedJWT = decodeJWT(jwt);
+        String data = decodedJWT[1];
+        JSONObject jsonObj;
+        try {
+            jsonObj = new JSONObject(data);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+        return jsonObj;
+    }
+
+    public ArrayList<JSONObject> getJSONFromJWT(String jwt) {
+        String[] decodedJWT = decodeJWT(jwt);
+        ArrayList<JSONObject> jsonList2 = new ArrayList();
+        for (int i = 0; i <= 1; i++) {
+            String data = decodedJWT[i];
+            JSONObject jsonObj;
+            try {
+                jsonObj = new JSONObject(data);
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+            jsonList2.add(jsonObj);
+        }
+        return jsonList2;
+    }
+
+    public void validateUserIdentityCredential (String coreIdentityJWT, String tokenSub) throws Exception {
+        // https://docs.sign-in.service.gov.uk/integrate-with-integration-environment/process-identity-information/#validate-your-user-s-identity-credential
+
+        ArrayList<JSONObject> jsonFromJWT = getJSONFromJWT(coreIdentityJWT);
+        JSONObject header = jsonFromJWT.get(0);
+        JSONObject payload = jsonFromJWT.get(1);
+
+        // 1. check JWT `alg` header is `ES256`
+        try {
+            String alg = header.get("alg").toString();
+            if (!Objects.equals(alg, "ES256")) {
+                LOG.info("alg not ES256");
+                throw new Exception();
+            }
+        } catch (JSONException e) {
+            LOG.info("JSONException when checking alg");
+            throw new RuntimeException(e);
+        }
+
+        // 2. check `iss` claim is `https://identity.integration.account.gov.uk/`
+        try {
+            String iss = payload.get("iss").toString();
+            if (!Objects.equals(iss, "https://identity.integration.account.gov.uk/")) {
+                LOG.info("iss invalid");
+                throw new Exception();
+            }
+        } catch (JSONException e) {
+            LOG.info("JSONException when checking iss");
+            throw new RuntimeException(e);
+        }
+
+        // 3. check `sub` claim matches the `sub` claim you received in the `id_token` from your token request
+        try {
+            String sub = payload.get("sub").toString();
+            if (!sub.equals(tokenSub)) {
+                LOG.info("sub invalid");
+                throw new Exception();
+            }
+        } catch (JSONException e) {
+            LOG.info("JSONException when checking sub");
+            throw new RuntimeException();
+        }
+
+        // 4. check current time is before time in `exp` claim
+        try {
+            Instant exp = Instant.ofEpochSecond((Integer) payload.get("exp"));
+            if (exp.compareTo(Instant.now()) < 0) {
+                   LOG.info("EXPIRED");
+                   throw new RuntimeException();
+            }
+        } catch (JSONException e) {
+            LOG.info("JSONException when checking exp");
+            throw new RuntimeException();
+        }
+
+        // 5. Check user's identity credential matches the level of confidence needed
+        try {
+            String vot = payload.get("vot").toString();
+            if (!vot.equals("P2")) {
+                throw new Exception();
+            }
+        } catch (JSONException e) {
+            LOG.info("JSONException when checking vot");
+            throw new RuntimeException();
         }
     }
 }
