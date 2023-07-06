@@ -63,6 +63,9 @@ public class Oidc {
     @Value("${key.private}")
     private String privateKey;
 
+    @Value("${key.onelogin.public}")
+    private String oneLoginPublicKey;
+
     @Value( "${callback.url}")
     private String callback;
 
@@ -300,6 +303,8 @@ public class Oidc {
     public void validateUserIdentityCredential (String coreIdentityJWT, String tokenSub) throws Exception {
         // https://docs.sign-in.service.gov.uk/integrate-with-integration-environment/process-identity-information/#validate-your-user-s-identity-credential
 
+        LOG.info("coreIdentityJWT: " + coreIdentityJWT);
+
         ArrayList<JSONObject> jsonFromJWT = getJSONFromJWT(coreIdentityJWT);
         JSONObject header = jsonFromJWT.get(0);
         JSONObject payload = jsonFromJWT.get(1);
@@ -316,7 +321,15 @@ public class Oidc {
             throw new RuntimeException(e);
         }
 
-        // 2. check `iss` claim is `https://identity.integration.account.gov.uk/`
+        // 2. Validate ES256 JWT Signature
+        CoreIdentityValidator validator = CoreIdentityValidator.createValidator(oneLoginPublicKey);
+        CoreIdentityValidator.Result isValidJWT = validator.isValid(coreIdentityJWT);
+        if (isValidJWT.equals(CoreIdentityValidator.Result.INVALID) || validator.isValid(coreIdentityJWT).equals(CoreIdentityValidator.Result.NOT_VALIDATED)) {
+                LOG.info("coreIdentityJWT not valid: " + isValidJWT);
+                throw new Exception();
+        }
+
+        // 3. check `iss` claim is `https://identity.integration.account.gov.uk/`
         try {
             String iss = payload.get("iss").toString();
             if (!Objects.equals(iss, "https://identity.integration.account.gov.uk/")) {
@@ -328,7 +341,7 @@ public class Oidc {
             throw new RuntimeException(e);
         }
 
-        // 3. check `sub` claim matches the `sub` claim you received in the `id_token` from your token request
+        // 4. check `sub` claim matches the `sub` claim you received in the `id_token` from your token request
         try {
             String sub = payload.get("sub").toString();
             if (!sub.equals(tokenSub)) {
@@ -340,7 +353,7 @@ public class Oidc {
             throw new RuntimeException();
         }
 
-        // 4. check current time is before time in `exp` claim
+        // 5. check current time is before time in `exp` claim
         try {
             Instant exp = Instant.ofEpochSecond((Integer) payload.get("exp"));
             if (exp.compareTo(Instant.now()) < 0) {
@@ -352,7 +365,7 @@ public class Oidc {
             throw new RuntimeException();
         }
 
-        // 5. Check user's identity credential matches the level of confidence needed
+        // 6. Check user's identity credential matches the level of confidence needed
         try {
             String vot = payload.get("vot").toString();
             if (!vot.equals("P2")) {

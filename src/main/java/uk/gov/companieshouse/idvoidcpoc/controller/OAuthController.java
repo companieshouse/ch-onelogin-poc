@@ -149,9 +149,10 @@ public class OAuthController {
             try {
                 oidcClient.validateUserIdentityCredential(coreIdentityJWT, sub);
             } catch (Exception e) {
-                LOG.info("User Identity Credentials Invalid");
+                LOG.info("User Identity Credentials Invalid: " + e.getMessage());
                 throw new RuntimeException();
             }
+            LOG.info("User Identity Credentials Valid");
 
             try {
                 JSONObject userDetails = oidcClient.getJSONPayloadFromJWT(coreIdentityJWT).getJSONObject("vc").getJSONObject("credentialSubject");
