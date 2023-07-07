@@ -136,6 +136,8 @@ public class OAuthController {
 
         var coreIdentityJWT =
                 userInfo.getStringClaim("https://vocab.account.gov.uk/v1/coreIdentityJWT");
+        var passportIdentityJWT =
+                userInfo.getClaim("https://vocab.account.gov.uk/v1/passport");
 
         if (coreIdentityJWT != null) {
             String sub;
@@ -177,6 +179,10 @@ public class OAuthController {
         boolean coreIdentityClaimPresent = Objects.nonNull(coreIdentityJWT);
         model.addAttribute("core_identity_claim_present", coreIdentityClaimPresent);
         model.addAttribute("core_identity_claim", coreIdentityJWT);
+
+        boolean passportIdentityClaimPresent = Objects.nonNull(passportIdentityJWT);
+        model.addAttribute("passport_identity_claim_present", passportIdentityClaimPresent);
+        model.addAttribute("passport_identity_claim", passportIdentityJWT);
 
         generateAndStoreAuthorisationCode();
 

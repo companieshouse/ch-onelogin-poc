@@ -120,7 +120,12 @@ public class Oidc {
         var identityEntry = new ClaimsSetRequest.Entry("https://vocab.account.gov.uk/v1/coreIdentityJWT")
                 .withClaimRequirement(ClaimRequirement.ESSENTIAL);
 
+        var passportEntry = new ClaimsSetRequest.Entry("https://vocab.account.gov.uk/v1/passport")
+                .withClaimRequirement(ClaimRequirement.ESSENTIAL);
+
         claimsSetRequest = claimsSetRequest.add(identityEntry);
+        claimsSetRequest = claimsSetRequest.add(passportEntry);
+
         // Create "vtr" array to request medium authentication (Cl.Cm) and a medium level of identity confidence (P2).
         JSONArray jsonArray = new JSONArray();
         jsonArray.add("P2.Cl.Cm");

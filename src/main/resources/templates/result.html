@@ -68,6 +68,13 @@
           <p>Date of Birth: <i th:text="${date_of_birth}"></i></p>
         </div>
 
+        <div th:if="${passport_identity_claim_present}">
+
+          <p></p>
+          <h2 class="govuk-heading-l">Passport Identity Claim</h2>
+          <pre th:text="${passport_identity_claim}"></pre>
+        </div>
+
         <p></p>
         <a href="/oauth/iv" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
           Refresh Token
