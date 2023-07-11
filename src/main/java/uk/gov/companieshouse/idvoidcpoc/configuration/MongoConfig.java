@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.convert.DefaultMongoTypeMapper;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
@@ -28,6 +29,7 @@ public class MongoConfig {
         String mongoDbName = environment.getProperty(MONGO_DB_NAME_PROPERTY);
         var mongoTemplate = new MongoTemplate(mongoClient(environment), Objects.requireNonNull(mongoDbName));
         MappingMongoConverter converter = (MappingMongoConverter) mongoTemplate.getConverter();
+        converter.setTypeMapper(new DefaultMongoTypeMapper(null));
         converter.afterPropertiesSet();
         return mongoTemplate;
     }

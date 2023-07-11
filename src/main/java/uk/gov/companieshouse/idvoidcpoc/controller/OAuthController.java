@@ -21,11 +21,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.id.*;
 import uk.gov.companieshouse.idvoidcpoc.dao.Oauth2AuthorisationsDao;
+import uk.gov.companieshouse.idvoidcpoc.dao.OneLoginDataDao;
 import uk.gov.companieshouse.idvoidcpoc.dao.UsersDao;
 import uk.gov.companieshouse.idvoidcpoc.repository.OauthRepository;
 import uk.gov.companieshouse.idvoidcpoc.repository.UsersRepository;
@@ -117,16 +119,6 @@ public class OAuthController {
         // Call /userinfo endpoint
         var userInfo = oidcClient.makeUserInfoRequest(tokens.getAccessToken());
 
-        List<UsersDao> user = usersRepository.findByEmail(userInfo.getEmailAddress());
-        if (user.size() == 1) {
-            model.addAttribute("email_found", true);
-            model.addAttribute("user_id", user.get(0).getId());
-            storeOneLoginUserFlag(user.get(0)); // add one_login flag to existing user
-        } else {
-            model.addAttribute("email_not_found", true);
-            // TODO create new user in `users` collection
-        }
-
         // Add details to model to display on results page
         model.addAttribute("access_token", tokens.getAccessToken());
         model.addAttribute("id_token", payload);
@@ -139,14 +131,33 @@ public class OAuthController {
         var passportIdentityJWT =
                 userInfo.getClaim("https://vocab.account.gov.uk/v1/passport");
 
-        if (coreIdentityJWT != null) {
-            String sub;
-            try {
-                sub = tokens.getIDToken().getJWTClaimsSet().getClaim("sub").toString();
-            } catch (java.text.ParseException e) {
-                LOG.info("error getting sub claim");
-                throw new RuntimeException(e);
+        String sub;
+        try {
+            sub = tokens.getIDToken().getJWTClaimsSet().getClaim("sub").toString();
+        } catch (java.text.ParseException e) {
+            LOG.info("error getting sub claim");
+            throw new RuntimeException(e);
+        }
+        model.addAttribute("one_login_user_id", sub);
+
+        List<UsersDao> user = usersRepository.findByEmail(userInfo.getEmailAddress());
+        if (user.size() == 1) {
+            LOG.info("Existing user found in mongo");
+            String oneLoginUserId = user.get(0).getOneLoginData().getOneLoginUserId();
+            if (!Objects.equals(oneLoginUserId, "") && !Objects.equals(oneLoginUserId, sub)) {
+                LOG.error("ONE LOGIN USER ID [" + oneLoginUserId + "] does not match ID in MongoDB [" + oneLoginUserId + "]");
+                throw new RuntimeException();
             }
+            model.addAttribute("email_found", true);
+            model.addAttribute("user_id", user.get(0).getId());
+            storeOneLoginUserDetails(user.get(0), sub);
+        } else {
+            LOG.info("No existing user found in mongo. Adding now.");
+            model.addAttribute("email_not_found", true);
+            storeNewUserDetails(userInfo.getEmailAddress(), sub);
+        }
+
+        if (coreIdentityJWT != null) {
 
             try {
                 oidcClient.validateUserIdentityCredential(coreIdentityJWT, sub);
@@ -296,9 +307,19 @@ public class OAuthController {
         oauthRepository.insert(oad);
     }
 
-    public void storeOneLoginUserFlag(UsersDao user) {
-        user.setOneLogin(true);
+    public void storeOneLoginUserDetails(UsersDao user, String oneLoginUserID) {
+        user.getOneLoginData().setOneLoginUserId(oneLoginUserID);
         usersRepository.save(user);
+    }
+
+    public void storeNewUserDetails(String email, String oneLoginUserID) {
+        UsersDao user = new UsersDao();
+        user.setEmail(email);
+        user.setOneLoginData(new OneLoginDataDao());
+        user.getOneLoginData().setOneLoginUserId(oneLoginUserID);
+        user.setLocale("GB_en");
+        user.setCreated(LocalDateTime.now());
+        usersRepository.insert(user);
     }
 
     public Cookie oauth2GenerateProviderCookie(HttpServletResponse response){

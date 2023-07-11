@@ -4,7 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Document(collection = "users")
 public class UsersDao {
@@ -21,10 +21,10 @@ public class UsersDao {
     private String password;
 
     @Field("created")
-    private LocalDate created;
+    private LocalDateTime created;
 
-    @Field("one_login")
-    private boolean oneLogin;
+    @Field("one_login_data")
+    private OneLoginDataDao oneLoginData;
 
     public String getId() {
         return id;
@@ -58,19 +58,19 @@ public class UsersDao {
         this.password = password;
     }
 
-    public LocalDate getCreated() {
+    public LocalDateTime getCreated() {
         return created;
     }
 
-    public void setCreated(LocalDate created) {
+    public void setCreated(LocalDateTime created) {
         this.created = created;
     }
 
-    public boolean isOneLogin() {
-        return oneLogin;
+    public OneLoginDataDao getOneLoginData() {
+        return oneLoginData;
     }
 
-    public void setOneLogin(boolean oneLogin) {
-        this.oneLogin = oneLogin;
+    public void setOneLoginData(OneLoginDataDao oneLoginData) {
+        this.oneLoginData = oneLoginData;
     }
 }
