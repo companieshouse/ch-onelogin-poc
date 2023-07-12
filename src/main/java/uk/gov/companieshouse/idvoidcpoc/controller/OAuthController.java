@@ -22,12 +22,14 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.id.*;
 import uk.gov.companieshouse.idvoidcpoc.dao.Oauth2AuthorisationsDao;
 import uk.gov.companieshouse.idvoidcpoc.dao.OneLoginDataDao;
+import uk.gov.companieshouse.idvoidcpoc.dao.UserDetailsDao;
 import uk.gov.companieshouse.idvoidcpoc.dao.UsersDao;
 import uk.gov.companieshouse.idvoidcpoc.repository.OauthRepository;
 import uk.gov.companieshouse.idvoidcpoc.repository.UsersRepository;
@@ -155,6 +157,7 @@ public class OAuthController {
             LOG.info("No existing user found in mongo. Adding now.");
             model.addAttribute("email_not_found", true);
             storeNewUserDetails(userInfo.getEmailAddress(), sub);
+            user = usersRepository.findByEmail(userInfo.getEmailAddress());
         }
 
         if (coreIdentityJWT != null) {
@@ -195,7 +198,7 @@ public class OAuthController {
         model.addAttribute("passport_identity_claim_present", passportIdentityClaimPresent);
         model.addAttribute("passport_identity_claim", passportIdentityJWT);
 
-        generateAndStoreAuthorisationCode();
+        generateAndStoreAuthorisationCode(user.get(0));
 
         // __FLP cookie
         Cookie flpCookie = oauth2GenerateProviderCookie(response);
@@ -229,7 +232,7 @@ public class OAuthController {
                 put("locale", "GB_en");
                 put("permissions", new HashMap<>());
                 put("scope", "https://identity.company-information.service.gov.uk/user.write-full");
-                put("email", "demo@ch.gov.uk");
+                put("email", userInfo.getEmailAddress());
                 put("forename", null);
                 put("surname", null);
                 put("id", "Y2VkZWVlMzhlZWFjY2M4MzQ3MT");
@@ -286,22 +289,30 @@ public class OAuthController {
         return new RedirectView(authorizationRequest.toURI().toString());
     }
 
-    public void generateAndStoreAuthorisationCode() {
+    public void generateAndStoreAuthorisationCode(UsersDao user) {
         // Generate Code
         Random rd = new Random();
         byte[] arr = new byte[32];
         rd.nextBytes(arr);
 
         // Encode random bytes
-        String code = Base64.getEncoder().encodeToString(arr);
+        String code = Base64.getEncoder().withoutPadding().encodeToString(arr);
 
         // Create record for DB
         Oauth2AuthorisationsDao oad = new Oauth2AuthorisationsDao();
-        oad.setCode("test_code");
-        oad.setClientID("test_client_id");
-        oad.setCodeValidUntil(409281574);
 
-        // TODO: Add user_details to Oauth2AuthorisationsDao
+        oad.setCode(code);
+        oad.setClientID("test_client_id");
+        oad.setCodeValidUntil(Math.toIntExact(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 30));
+        oad.setTokenValidUntil(Math.toIntExact(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) + 3600));
+
+        UserDetailsDao udd = new UserDetailsDao();
+        udd.setUserID(user.getId());
+        udd.setEmail(user.getEmail());
+        oad.setUserDetails(udd);
+        oad.setIdentityProvider("companies_house");
+
+        // TODO: Add more fields to Oauth2AuthorisationsDao
 
         // Store record in DB
         oauthRepository.insert(oad);
